@@ -1,0 +1,10 @@
+# Virtual environments
+.venv/
+venv/
+env/
+fashion_mnist/
+tf-env/
+
+# Python cache
+__pycache__/
+*.pyc
