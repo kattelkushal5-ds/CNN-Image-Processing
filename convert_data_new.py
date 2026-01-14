@@ -21,7 +21,7 @@ images = []
 # Read all images
 for f in files:
     labels.append(int(f[0:1]))
-    img = Image.open(os.path.join(img_file, f)).convert("L").resize((W, H))
+    img = Image.open(os.path.join(img_file, f)).convert("L").resize((W, H)) #convert("L") - Convert to grayscale
     images.append(np.array(img))
 
 images = np.array(images)
@@ -39,10 +39,15 @@ if correct_data == 1:
         msk = (img == 255)
         coords = np.where(msk)
         
-        if coords[0].size < 10: 
+        if coords[0].size < 25: 
             continue
         
         rows, cols = coords
+
+        #ur	unique rows	Which rows contain white pixels
+        #rc	row counts	How many white pixels per row
+        #r	row index	Row with the most white pixels
+        #c	column index	Column with the most white pixels
         ur, rc = np.unique(rows, return_counts=True)
         uc, cc = np.unique(cols, return_counts=True)
         
@@ -50,19 +55,54 @@ if correct_data == 1:
         c = uc[np.argmax(cc)]
         
         # Fix horizontal white line
-        if rc.max() >= 10:
+        if rc.max() >= 25:
             fixes_applied += 1
             if 0 < r < img.shape[0] - 1:
                 images[idx][r, :] = (img[r-1, :] + img[r+1, :]) / 2
         
         # Fix vertical white line
-        elif cc.max() >= 10:
+        elif cc.max() >= 25:
             fixes_applied += 1
             if 0 < c < img.shape[1] - 1:
                 images[idx][:, c] = (img[:, c-1] + img[:, c+1]) / 2
-    
+        
     print(f"Fixed {fixes_applied} images with white lines")
     
+
+
+    """
+    def balance_classes_by_repetition(images, labels, min_ratio=0.5):
+
+    unique_labels, counts = np.unique(labels, return_counts=True)
+    avg_count = counts.mean()
+
+    images_out = [images]
+    labels_out = [labels]
+
+    for lab, cnt in zip(unique_labels, counts):
+        if cnt < min_ratio * avg_count:
+            factor = int(np.ceil(avg_count / cnt))
+
+            imgs_lab = images[labels == lab]
+            labs_lab = labels[labels == lab]
+
+            imgs_rep = np.repeat(imgs_lab, factor, axis=0)
+            labs_rep = np.repeat(labs_lab, factor, axis=0)
+
+            images_out.append(imgs_rep)
+            labels_out.append(labs_rep)
+
+            print(
+                f"Augmented label {lab}: "
+                f"{cnt} → {cnt * factor} (factor={factor})"
+            )
+
+    images_balanced = np.concatenate(images_out, axis=0)
+    labels_balanced = np.concatenate(labels_out, axis=0)
+
+    return images_balanced, labels_balanced
+    """
+
     # Handle class imbalance - augment class 5
     images_5 = images[labels == 5]
     labels_5 = labels[labels == 5]
@@ -73,6 +113,9 @@ if correct_data == 1:
     
     images_final = np.concatenate([images, images_5_new], axis=0)
     labels_final = np.concatenate([labels, labels_5_new], axis=0)
+    
+    #images_final, labels_final = balance_classes_by_repetition(images, labels)
+
     
     print(f"Augmented class 5 by factor {factor}")
 else:
